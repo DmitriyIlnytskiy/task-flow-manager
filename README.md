@@ -1,73 +1,32 @@
-# React + TypeScript + Vite
+# Task Flow Manager - Project 2
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## Overview
+This is the foundational setup for my Task Flow Manager app. I chose this theme because tracking tasks with varying statuses, priorities, and deadlines presents some really interesting state management challenges—which will be perfect to tackle when we dive deeper into React Hooks next week. To make the UI a bit more interesting to build and test, I populated the initial dummy data with some of my actual real-life projects, like building a LiFePO4 power system and repairing my car.
 
-Currently, two official plugins are available:
+## Core Entities & Types
+Following the "types first" workflow, all data contracts are strictly defined in `src/types.ts` before any implementation:
+* **Task**: The primary entity. It includes standard text fields (id, title, description), plus specific union types for `TaskStatus` (backlog, todo, in-progress, review, done) and `TaskPriority` (low, medium, high, urgent). It also tracks `tags`, `dueDate`, and `dependencies`.
+* **AppState**: Represents the memory of the application, containing the collection of tasks and the currently active UI filters.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## App Structure
+* `src/types.ts`: The single source of truth for all TypeScript domain interfaces and union types.
+* `src/main.tsx`: The application entry point that wraps the app in the React Router `<BrowserRouter>`.
+* `src/App.tsx`: Defines the core navigation shell and the `<Routes>` mapping.
+* `src/pages/`: Contains the isolated page components (`HomePage.tsx` and `ProjectsPage.tsx`) to keep the routing clean.
 
-## React Compiler
+## AI Usage Statement
+I used Gemini as a coding assistant for this foundation. Specifically, it helped me troubleshoot a Windows PowerShell execution policy error that was blocking my initial Vite scaffolding. It also helped me debug a tricky Vite crash related to importing TypeScript types (teaching me the `import type` syntax), and scaffolded the initial boilerplate for the React Router layout and the dashboard UI.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## How to Run Locally
+1. Open the terminal in the root project directory.
+2. Install the necessary dependencies:
+   ```bash
+   npm install
 
-## Expanding the ESLint configuration
+Start the Vite development server:
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+    npm run dev
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+To verify the strict TypeScript compilation (zero errors), run:
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+    npx tsc --noEmit
