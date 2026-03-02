@@ -1,4 +1,4 @@
-// src/types.ts
+
 
 export type TaskStatus = 'backlog' | 'todo' | 'in-progress' | 'review' | 'done';
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
@@ -18,4 +18,5 @@ export interface AppState {
   tasks: Task[];
   activeStatusFilter: TaskStatus | 'all';
   activePriorityFilter: TaskPriority | 'all';
+  searchQuery: string;
 }

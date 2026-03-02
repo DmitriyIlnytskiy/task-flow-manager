@@ -1,0 +1,22 @@
+[
+  {
+    "id": "1",
+    "title": "Assemble LiFePO4 power system",
+    "description": "Connect cells, test voltages, and wire the BMS",
+    "status": "in-progress",
+    "priority": "high",
+    "tags": ["electronics", "power"],
+    "dependencies": [],
+    "dueDate": "2026-03-10"
+  },
+  {
+    "id": "2",
+    "title": "Understand React.js",
+    "description": "learn new language",
+    "status": "todo",
+    "priority": "urgent",
+    "tags": ["React.js", "coding"],
+    "dependencies": ["3"],
+    "dueDate": "2026-02-25"
+  }
+]
