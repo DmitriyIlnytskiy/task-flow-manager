@@ -1,9 +1,9 @@
 // src/pages/ProjectsPage.tsx
 import { useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
-import { useTaskManager } from '../hooks/useTaskManager';
+import { useTaskStore } from '../store/taskStore';
 import type { TaskStatus, TaskPriority } from '../types';
-import '../App.css'; // Importing our new CSS!
+import '../App.css'; 
 import { 
   Box, Typography, Card, CardContent, Select, MenuItem, 
   Button, Chip, Stack, Dialog, DialogTitle, DialogContent, 
@@ -11,35 +11,44 @@ import {
 } from '@mui/material';
 
 export default function ProjectsPage() {
-  const { 
-    state, addTask, updateStatus, deleteTask, 
-    setStatusFilter, setPriorityFilter, setSearchQuery 
-  } = useTaskManager();
+  // 1. GLOBAL STATE (Zustand Backpack)
+  const tasks = useTaskStore((state) => state.tasks);
+  const addTask = useTaskStore((state) => state.addTask);
+  const updateStatus = useTaskStore((state) => state.updateStatus);
+  const deleteTask = useTaskStore((state) => state.deleteTask);
 
+  // 2. LOCAL UI & FORM STATE
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newDescription, setNewDescription] = useState('');
   const [newPriority, setNewPriority] = useState<TaskPriority>('medium');
   const [newDueDate, setNewDueDate] = useState('');
 
+  // 3. LOCAL FILTER STATE
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeStatusFilter, setStatusFilter] = useState<TaskStatus | 'all'>('all');
+  const [activePriorityFilter, setPriorityFilter] = useState<TaskPriority | 'all'>('all');
+
   const isOverdue = (dateString?: string) => {
     if (!dateString) return false;
     return new Date(dateString) < new Date();
   };
 
-  // Advanced Filtering: Checks Status, Priority, AND Search Text!
-  const displayedTasks = state.tasks.filter(task => {
-    const matchesStatus = state.activeStatusFilter === 'all' || task.status === state.activeStatusFilter;
-    const matchesPriority = state.activePriorityFilter === 'all' || task.priority === state.activePriorityFilter;
-    const matchesSearch = task.title.toLowerCase().includes(state.searchQuery.toLowerCase()) || 
-                          (task.description && task.description.toLowerCase().includes(state.searchQuery.toLowerCase()));
+  // Advanced Filtering (Now using our local state variables!)
+  const displayedTasks = tasks.filter(task => {
+    const matchesStatus = activeStatusFilter === 'all' || task.status === activeStatusFilter;
+    const matchesPriority = activePriorityFilter === 'all' || task.priority === activePriorityFilter;
+    const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          (task.description && task.description.toLowerCase().includes(searchQuery.toLowerCase()));
     
     return matchesStatus && matchesPriority && matchesSearch;
   });
 
   const handleCreateSubmit = () => {
     if (newTitle.trim() !== '') {
-      addTask(newTitle, newDescription, newPriority, newDueDate);
+      // We pass ALL the local state variables into our global action now!
+      addTask(newTitle, newDescription, newPriority, newDueDate); 
+      
       setNewTitle('');
       setNewDescription('');
       setNewPriority('medium');
@@ -57,23 +66,22 @@ export default function ProjectsPage() {
       {/* Top Controls Bar */}
       <Stack direction="row" spacing={2} sx={{ mb: 4, flexWrap: 'wrap' }}>
         
-        {/* NEW: The Search Bar */}
         <TextField 
           size="small" 
           placeholder="Search tasks..." 
-          value={state.searchQuery}
+          value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           sx={{ flexGrow: 1 }} 
         />
 
-        <Select size="small" value={state.activeStatusFilter} onChange={(e) => setStatusFilter(e.target.value as TaskStatus | 'all')}>
+        <Select size="small" value={activeStatusFilter} onChange={(e) => setStatusFilter(e.target.value as TaskStatus | 'all')}>
           <MenuItem value="all">All Statuses</MenuItem>
           <MenuItem value="todo">To Do</MenuItem>
           <MenuItem value="in-progress">In Progress</MenuItem>
           <MenuItem value="done">Done</MenuItem>
         </Select>
 
-        <Select size="small" value={state.activePriorityFilter} onChange={(e) => setPriorityFilter(e.target.value as TaskPriority | 'all')}>
+        <Select size="small" value={activePriorityFilter} onChange={(e) => setPriorityFilter(e.target.value as TaskPriority | 'all')}>
           <MenuItem value="all">All Priorities</MenuItem>
           <MenuItem value="urgent">Urgent</MenuItem>
           <MenuItem value="high">High</MenuItem>
@@ -125,7 +133,7 @@ export default function ProjectsPage() {
             <Card 
               key={task.id} 
               variant="outlined" 
-              className="task-card" // Applies our hover animation!
+              className="task-card" 
               sx={{ borderColor: overdue ? 'error.main' : 'divider', bgcolor: overdue ? 'error.light' : 'background.paper' }}
             >
               <CardContent>
@@ -142,7 +150,6 @@ export default function ProjectsPage() {
                       <Chip label={task.status.toUpperCase()} size="small" color={task.status === 'done' ? 'success' : 'default'} />
                       <Chip label={task.priority.toUpperCase()} size="small" color={task.priority === 'urgent' ? 'error' : 'primary'} variant="outlined" />
                       
-                      {/* FIX: Visually prominent Due Date Badge */}
                       {task.dueDate && (
                         <Chip 
                           label={`📅 Due: ${task.dueDate}`} 
@@ -154,24 +161,33 @@ export default function ProjectsPage() {
                     </Stack>
 
                     <Stack direction="row" spacing={1}>
-                      {task.tags.map(tag => (
+                      {task.tags?.map(tag => (
                         <Chip key={tag} label={`#${tag}`} size="small" variant="outlined" sx={{ border: 'none', bgcolor: '#f0f0f0' }} />
                       ))}
                     </Stack>
                   </Box>
 
                   <Stack spacing={1}>
-                    {task.status !== 'done' && (
-                      <Button size="small" variant="contained" color="success" onClick={() => updateStatus(task.id, 'done')}>Mark Done</Button>
+                    {/* If it's NOT done, show the Mark Done button */}
+                    {task.status !== 'done' ? (
+                      <Button size="small" variant="contained" color="success" onClick={() => updateStatus(task.id, 'done')}>
+                        Mark Done
+                      </Button>
+                    ) : (
+                      /* NEW: If it IS done, show the Undo button! */
+                      <Button size="small" variant="outlined" color="warning" onClick={() => updateStatus(task.id, 'todo')}>
+                        Undo
+                      </Button>
                     )}
-                    <Button size="small" variant="outlined" color="error" onClick={() => deleteTask(task.id)}>Delete</Button>
+                    <Button size="small" variant="outlined" color="error" onClick={() => deleteTask(task.id)}>
+                      Delete
+                    </Button>
                   </Stack>
                 </Stack>
               </CardContent>
             </Card>
           );
         })}
-        {/* Shows a friendly message if the search finds nothing */}
         {displayedTasks.length === 0 && (
           <Typography variant="body1" color="text.secondary" textAlign="center" sx={{ mt: 4 }}>
             No tasks match your filters or search.

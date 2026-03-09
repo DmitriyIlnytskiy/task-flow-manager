@@ -13,7 +13,7 @@ export function useTaskManager() {
       tasks: initialTasks,
       activeStatusFilter: 'all',
       activePriorityFilter: 'all',
-      searchQuery: '' // <-- Initialize the search state
+      searchQuery: '' 
     };
   });
 
