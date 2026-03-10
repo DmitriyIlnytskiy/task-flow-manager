@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { TaskStatus, TaskPriority } from '../types'; // Assuming you have these from Week 3/4
+import type { TaskStatus, TaskPriority } from '../types'; 
 
 // 1. Define the shape of our global backpack
 export interface Task {
@@ -16,7 +16,7 @@ interface TaskStore {
   tasks: Task[];
   loading: boolean;
   error: string | null;
-  // Update this line to accept the new fields:
+  
   addTask: (title: string, description: string, priority: TaskPriority, dueDate: string) => void;
   updateStatus: (id: string, newStatus: TaskStatus) => void;
   deleteTask: (id: string) => void;

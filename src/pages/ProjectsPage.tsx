@@ -168,13 +168,13 @@ export default function ProjectsPage() {
                   </Box>
 
                   <Stack spacing={1}>
-                    {/* If it's NOT done, show the Mark Done button */}
+                    {/* Done button */}
                     {task.status !== 'done' ? (
                       <Button size="small" variant="contained" color="success" onClick={() => updateStatus(task.id, 'done')}>
                         Mark Done
                       </Button>
                     ) : (
-                      /* NEW: If it IS done, show the Undo button! */
+                      /* Undo button! */
                       <Button size="small" variant="outlined" color="warning" onClick={() => updateStatus(task.id, 'todo')}>
                         Undo
                       </Button>

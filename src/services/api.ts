@@ -13,8 +13,8 @@ export const api: TaskApi = {
     return new Promise((resolve) => {
       setTimeout(() => {
         resolve([
-          { id: '1', title: 'Buy parts for Lanos', status: 'todo', priority: 'high' },
-          { id: '2', title: 'Finish AUK homework', status: 'in-progress', priority: 'high' }
+          { id: '1', title: 'task 1', status: 'todo', priority: 'high' },
+          { id: '2', title: 'task 2', status: 'in-progress', priority: 'high' }
         ]);
       }, 1000);
     });
