@@ -1,35 +1,64 @@
+// src/services/api.ts
 import type { Task } from '../store/taskStore';
+import type { TaskPriority, TaskStatus } from '../types';
 
-// We define the contract for what the backend MUST provide
+const DB_KEY = 'task_flow_persistent_db';
+
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// 1. Foolproof ID generator (works on every browser/server)
+const generateId = () => {
+  return Date.now().toString(36) + Math.random().toString(36).substring(2);
+};
+
+// 2. Self-healing DB reader
+const readDB = (): Task[] => {
+  try {
+    const data = localStorage.getItem(DB_KEY);
+    if (!data) return [];
+    const parsed = JSON.parse(data);
+    if (!Array.isArray(parsed)) throw new Error("Not an array");
+    return parsed;
+  } catch (e) {
+    console.error("Corrupted database detected. Resetting to empty.");
+    localStorage.removeItem(DB_KEY); // Automatically fix the white screen issue!
+    return [];
+  }
+};
+
 export interface TaskApi {
   fetchTasks: () => Promise<Task[]>;
-  createTask: (title: string, priority: string) => Promise<Task>;
+  createTask: (task: Omit<Task, 'id'>) => Promise<Task>;
+  updateTaskStatus: (id: string, status: TaskStatus) => Promise<void>;
+  deleteTask: (id: string) => Promise<void>;
 }
 
-// Placeholder implementations that return mock data so the app compiles
 export const api: TaskApi = {
   fetchTasks: async () => {
-    // Simulating a network delay
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve([
-          { id: '1', title: 'task 1', status: 'todo', priority: 'high' },
-          { id: '2', title: 'task 2', status: 'in-progress', priority: 'high' }
-        ]);
-      }, 1000);
-    });
+    await delay(500);
+    return readDB();
   },
 
-  createTask: async (title, priority) => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve({
-          id: crypto.randomUUID(),
-          title,
-          status: 'todo',
-          priority: priority as any
-        });
-      }, 500);
-    });
+  createTask: async (taskData) => {
+    await delay(500);
+    const newTask: Task = { ...taskData, id: generateId() };
+    const tasks = readDB();
+    tasks.push(newTask);
+    localStorage.setItem(DB_KEY, JSON.stringify(tasks));
+    return newTask;
+  },
+
+  updateTaskStatus: async (id, status) => {
+    await delay(300);
+    const tasks = readDB();
+    const updatedTasks = tasks.map(t => t.id === id ? { ...t, status } : t);
+    localStorage.setItem(DB_KEY, JSON.stringify(updatedTasks));
+  },
+
+  deleteTask: async (id) => {
+    await delay(300);
+    const tasks = readDB();
+    const updatedTasks = tasks.filter(t => t.id !== id);
+    localStorage.setItem(DB_KEY, JSON.stringify(updatedTasks));
   }
 };

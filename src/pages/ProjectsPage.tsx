@@ -1,5 +1,5 @@
 // src/pages/ProjectsPage.tsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import { useTaskStore } from '../store/taskStore';
 import type { TaskStatus, TaskPriority } from '../types';
@@ -7,15 +7,25 @@ import '../App.css';
 import { 
   Box, Typography, Card, CardContent, Select, MenuItem, 
   Button, Chip, Stack, Dialog, DialogTitle, DialogContent, 
-  DialogActions, TextField, InputLabel, FormControl 
+  DialogActions, TextField, InputLabel, FormControl
 } from '@mui/material';
 
 export default function ProjectsPage() {
+  
   // 1. GLOBAL STATE (Zustand Backpack)
   const tasks = useTaskStore((state) => state.tasks);
   const addTask = useTaskStore((state) => state.addTask);
   const updateStatus = useTaskStore((state) => state.updateStatus);
   const deleteTask = useTaskStore((state) => state.deleteTask);
+
+  // NEW: Pull loading and loadTasks from Zustand!
+  const loading = useTaskStore((state) => state.loading);
+  const loadTasks = useTaskStore((state) => state.loadTasks);
+
+  // FETCH DATA ON LOAD
+  useEffect(() => {
+    loadTasks();
+  }, [loadTasks]);
 
   // 2. LOCAL UI & FORM STATE
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -34,12 +44,20 @@ export default function ProjectsPage() {
     return new Date(dateString) < new Date();
   };
 
-  // Advanced Filtering (Now using our local state variables!)
+ // Advanced Filtering (Now ABSOLUTELY Bulletproof!)
   const displayedTasks = tasks.filter(task => {
+    // 1. Drop the task immediately if it is somehow totally broken
+    if (!task || typeof task !== 'object') return false;
+
     const matchesStatus = activeStatusFilter === 'all' || task.status === activeStatusFilter;
     const matchesPriority = activePriorityFilter === 'all' || task.priority === activePriorityFilter;
-    const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          (task.description && task.description.toLowerCase().includes(searchQuery.toLowerCase()));
+    
+    // 2. FORCE strict string conversion. 
+    const safeTitle = String(task.title || '');
+    const safeDesc = String(task.description || '');
+    
+    const matchesSearch = safeTitle.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          safeDesc.toLowerCase().includes(searchQuery.toLowerCase());
     
     return matchesStatus && matchesPriority && matchesSearch;
   });
@@ -62,6 +80,9 @@ export default function ProjectsPage() {
       <Typography variant="h4" gutterBottom fontWeight="bold">
         Task Dashboard
       </Typography>
+
+      {/* NEW: Show this text only when the API is fetching */}
+      {loading && <Typography color="primary" sx={{ mb: 2 }}>Syncing with database...</Typography>}
       
       {/* Top Controls Bar */}
       <Stack direction="row" spacing={2} sx={{ mb: 4, flexWrap: 'wrap' }}>
