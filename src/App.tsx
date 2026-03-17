@@ -7,7 +7,7 @@ import AboutPage from './pages/AboutPage';
 
 export default function App() {
   return (
-    // We use a React Fragment (<>) here instead of <Router>
+    // Use a React Fragment (<>) here instead of <Router>
     <>
       {/* The App Shell Navigation Bar */}
       <AppBar position="static" color="primary" sx={{ mb: 4 }}>
