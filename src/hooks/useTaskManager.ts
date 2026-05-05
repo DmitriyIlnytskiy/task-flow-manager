@@ -1,7 +1,7 @@
 // src/hooks/useTaskManager.ts
 import { useState, useCallback, useEffect } from 'react';
 import type { TaskStatus, TaskPriority, AppState } from '../types';
-import taskData from '../data/tasks.json';
+import taskData from '../data/tasks1.json';
 
 const STORAGE_KEY = 'task-flow-data';
 

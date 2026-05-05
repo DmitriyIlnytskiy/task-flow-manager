@@ -23,9 +23,10 @@ interface TaskStore {
   addTask: (title: string, description: string, priority: TaskPriority, dueDate: string) => Promise<void>;
   updateStatus: (id: string, newStatus: TaskStatus) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
+  updateTask: (id: string, updatedData: Partial<Task>) => Promise<void>;
 }
 
-export const useTaskStore = create<TaskStore>((set, get) => ({
+export const useTaskStore = create<TaskStore>((set) => ({
   tasks: [],
   loading: false,
   error: null,
@@ -75,6 +76,19 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
       }));
     } catch (err) {
       set({ error: 'Failed to delete task', loading: false });
+    }
+  },
+
+  updateTask: async (id, updatedData) => {
+    set({ loading: true, error: null });
+    try {
+      const updatedTask = await api.updateTask(id, updatedData);
+      set((state) => ({
+        tasks: state.tasks.map(t => t.id === id ? { ...t, ...updatedTask } : t),
+        loading: false
+      }));
+    } catch (err) {
+      set({ error: 'Failed to update task', loading: false });
     }
   }
 }));

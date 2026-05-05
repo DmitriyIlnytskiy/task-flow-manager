@@ -2,7 +2,7 @@
 body {
   margin: 0;
   font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  /* Removed the hardcoded linear-gradient so MUI can paint the dark mode background */
   min-height: 100vh;
 }
 
@@ -34,7 +34,7 @@ body {
 }
 
 .nav-link:hover {
-  color: #1976d2; /* MUI Primary Blue */
+  color: #1976d2;
   transform: translateY(-2px);
 }
 

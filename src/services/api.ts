@@ -1,6 +1,6 @@
 // src/services/api.ts
 import type { Task } from '../store/taskStore';
-import type { TaskPriority, TaskStatus } from '../types';
+import type { TaskStatus } from '../types';
 
 const DB_KEY = 'task_flow_persistent_db';
 
@@ -31,6 +31,7 @@ export interface TaskApi {
   createTask: (task: Omit<Task, 'id'>) => Promise<Task>;
   updateTaskStatus: (id: string, status: TaskStatus) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
+  updateTask: (id: string, updatedData: Partial<Task>) => Promise<Task>;
 }
 
 export const api: TaskApi = {
@@ -60,5 +61,20 @@ export const api: TaskApi = {
     const tasks = readDB();
     const updatedTasks = tasks.filter(t => t.id !== id);
     localStorage.setItem(DB_KEY, JSON.stringify(updatedTasks));
+  },
+
+  updateTask: async (id, updatedData) => {
+    await delay(300);
+    const tasks = readDB();
+    const taskIndex = tasks.findIndex(t => t.id === id);
+    
+    if (taskIndex === -1) throw new Error("Task not found");
+    
+    // Merge the old task data with whatever they edited
+    const updatedTask = { ...tasks[taskIndex], ...updatedData };
+    tasks[taskIndex] = updatedTask;
+    
+    localStorage.setItem(DB_KEY, JSON.stringify(tasks));
+    return updatedTask;
   }
 };

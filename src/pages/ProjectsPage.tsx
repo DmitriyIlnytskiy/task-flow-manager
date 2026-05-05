@@ -2,6 +2,8 @@
 import { useState, useEffect } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import { useTaskStore } from '../store/taskStore';
+import { useSettingsStore } from '../store/settingsStore';
+import type { Task } from '../store/taskStore';
 import type { TaskStatus, TaskPriority } from '../types';
 import '../App.css'; 
 import { 
@@ -12,15 +14,15 @@ import {
 
 export default function ProjectsPage() {
   
-  // 1. GLOBAL STATE (Zustand Backpack)
+  // 1. GLOBAL STATE
   const tasks = useTaskStore((state) => state.tasks);
   const addTask = useTaskStore((state) => state.addTask);
   const updateStatus = useTaskStore((state) => state.updateStatus);
+  const updateTask = useTaskStore((state) => state.updateTask); // NEW: imported for full edits
   const deleteTask = useTaskStore((state) => state.deleteTask);
-
-  // NEW: Pull loading and loadTasks from Zustand!
   const loading = useTaskStore((state) => state.loading);
   const loadTasks = useTaskStore((state) => state.loadTasks);
+  const { compactMode } = useSettingsStore();
 
   // FETCH DATA ON LOAD
   useEffect(() => {
@@ -29,6 +31,8 @@ export default function ProjectsPage() {
 
   // 2. LOCAL UI & FORM STATE
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null); // NEW: Tracks if we are editing
+  
   const [newTitle, setNewTitle] = useState('');
   const [newDescription, setNewDescription] = useState('');
   const [newPriority, setNewPriority] = useState<TaskPriority>('medium');
@@ -44,15 +48,13 @@ export default function ProjectsPage() {
     return new Date(dateString) < new Date();
   };
 
- // Advanced Filtering (Now ABSOLUTELY Bulletproof!)
+  // Advanced Filtering
   const displayedTasks = tasks.filter(task => {
-    // 1. Drop the task immediately if it is somehow totally broken
     if (!task || typeof task !== 'object') return false;
 
     const matchesStatus = activeStatusFilter === 'all' || task.status === activeStatusFilter;
     const matchesPriority = activePriorityFilter === 'all' || task.priority === activePriorityFilter;
     
-    // 2. FORCE strict string conversion. 
     const safeTitle = String(task.title || '');
     const safeDesc = String(task.description || '');
     
@@ -62,31 +64,53 @@ export default function ProjectsPage() {
     return matchesStatus && matchesPriority && matchesSearch;
   });
 
-  const handleCreateSubmit = () => {
+  // Modal Handlers
+  const handleOpenCreateModal = () => {
+    setEditingTaskId(null);
+    setNewTitle('');
+    setNewDescription('');
+    setNewPriority('medium');
+    setNewDueDate('');
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEditModal = (task: Task) => {
+    setEditingTaskId(task.id);
+    setNewTitle(task.title);
+    setNewDescription(task.description || '');
+    setNewPriority(task.priority);
+    setNewDueDate(task.dueDate || '');
+    setIsModalOpen(true);
+  };
+
+  const handleSaveSubmit = () => {
     if (newTitle.trim() !== '') {
-      // We pass ALL the local state variables into our global action now!
-      addTask(newTitle, newDescription, newPriority, newDueDate); 
-      
-      setNewTitle('');
-      setNewDescription('');
-      setNewPriority('medium');
-      setNewDueDate('');
+      if (editingTaskId) {
+        // Edit existing task
+        updateTask(editingTaskId, {
+          title: newTitle,
+          description: newDescription,
+          priority: newPriority,
+          dueDate: newDueDate
+        });
+      } else {
+        // Create new task
+        addTask(newTitle, newDescription, newPriority, newDueDate); 
+      }
       setIsModalOpen(false);
     }
   };
 
   return (
-    <Box className="dashboard-container" sx={{ p: 4, maxWidth: 800, margin: '0 auto' }}>
+    <Box className="dashboard-container" sx={{ p: 4, maxWidth: 1200, margin: '0 auto' }}>
       <Typography variant="h4" gutterBottom fontWeight="bold">
         Task Dashboard
       </Typography>
 
-      {/* NEW: Show this text only when the API is fetching */}
       {loading && <Typography color="primary" sx={{ mb: 2 }}>Syncing with database...</Typography>}
       
       {/* Top Controls Bar */}
       <Stack direction="row" spacing={2} sx={{ mb: 4, flexWrap: 'wrap' }}>
-        
         <TextField 
           size="small" 
           placeholder="Search tasks..." 
@@ -110,14 +134,14 @@ export default function ProjectsPage() {
           <MenuItem value="low">Low</MenuItem>
         </Select>
 
-        <Button variant="contained" color="primary" onClick={() => setIsModalOpen(true)}>
+        <Button variant="contained" color="primary" onClick={handleOpenCreateModal}>
           + Create Task
         </Button>
       </Stack>
 
-      {/* Modal Popup */}
+      {/* Reusable Modal for Create AND Edit */}
       <Dialog open={isModalOpen} onClose={() => setIsModalOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Create New Task</DialogTitle>
+        <DialogTitle>{editingTaskId ? 'Edit Task' : 'Create New Task'}</DialogTitle>
         <DialogContent>
           <Stack spacing={3} sx={{ mt: 1 }}>
             <TextField label="Task Title" fullWidth value={newTitle} onChange={(e) => setNewTitle(e.target.value)} />
@@ -140,14 +164,14 @@ export default function ProjectsPage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setIsModalOpen(false)}>Cancel</Button>
-          <Button onClick={handleCreateSubmit} variant="contained" disabled={!newTitle.trim()}>
-            Save Task
+          <Button onClick={handleSaveSubmit} variant="contained" disabled={!newTitle.trim()}>
+            {editingTaskId ? 'Save Changes' : 'Save Task'}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Task List */}
-      <Stack spacing={2}>
+      <Stack spacing={compactMode ? 1 : 2}>
         {displayedTasks.map(task => {
           const overdue = isOverdue(task.dueDate) && task.status !== 'done';
           return (
@@ -157,17 +181,28 @@ export default function ProjectsPage() {
               className="task-card" 
               sx={{ borderColor: overdue ? 'error.main' : 'divider', bgcolor: overdue ? 'error.light' : 'background.paper' }}
             >
-              <CardContent>
-                <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
-                  <Box>
-                    <Typography variant="h6" color={overdue ? 'error' : 'text.primary'} fontWeight="bold">
+              {/* 1. AGGRESSIVE PADDING REDUCTION */}
+              <CardContent sx={{ 
+                p: compactMode ? 1.5 : 3, 
+                '&:last-child': { pb: compactMode ? 1.5 : 3 } 
+              }}>
+                
+                {/* 2. SHRINK GAP BETWEEN LEFT TEXT AND RIGHT BUTTONS */}
+                <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems="flex-start" spacing={compactMode ? 1 : 2}>
+                  
+                  <Box sx={{ flexGrow: 1 }}>
+                    {/* Shrink the title slightly in compact mode */}
+                    <Typography variant={compactMode ? "subtitle1" : "h6"} color={overdue ? 'error' : 'text.primary'} fontWeight="bold">
                       {task.title}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+                    
+                    {/* Shrink margin below description */}
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: compactMode ? 0.5 : 1.5 }}>
                       {task.description || 'No description provided.'}
                     </Typography>
                     
-                    <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
+                    {/* Shrink margin below chips */}
+                    <Stack direction="row" alignItems="center" sx={{ mb: compactMode ? 0.5 : 1.5, flexWrap: 'wrap', gap: 1 }}>
                       <Chip label={task.status.toUpperCase()} size="small" color={task.status === 'done' ? 'success' : 'default'} />
                       <Chip label={task.priority.toUpperCase()} size="small" color={task.priority === 'urgent' ? 'error' : 'primary'} variant="outlined" />
                       
@@ -180,29 +215,35 @@ export default function ProjectsPage() {
                         />
                       )}
                     </Stack>
-
-                    <Stack direction="row" spacing={1}>
-                      {task.tags?.map(tag => (
-                        <Chip key={tag} label={`#${tag}`} size="small" variant="outlined" sx={{ border: 'none', bgcolor: '#f0f0f0' }} />
-                      ))}
-                    </Stack>
                   </Box>
 
-                  <Stack spacing={1}>
-                    {/* Done button */}
+                  {/* Right Side Action Buttons */}
+                  <Stack spacing={compactMode ? 0.5 : 1} direction={{ xs: 'row', sm: 'column' }} flexWrap="wrap" sx={{ minWidth: '120px' }}>
+                    
+                    {task.status === 'todo' && (
+                      <Button size="small" variant="contained" color="info" onClick={() => updateStatus(task.id, 'in-progress')}>
+                        Start
+                      </Button>
+                    )}
+
                     {task.status !== 'done' ? (
                       <Button size="small" variant="contained" color="success" onClick={() => updateStatus(task.id, 'done')}>
                         Mark Done
                       </Button>
                     ) : (
-                      /* Undo button! */
                       <Button size="small" variant="outlined" color="warning" onClick={() => updateStatus(task.id, 'todo')}>
                         Undo
                       </Button>
                     )}
+
+                    <Button size="small" variant="outlined" color="primary" onClick={() => handleOpenEditModal(task)}>
+                      Edit
+                    </Button>
+
                     <Button size="small" variant="outlined" color="error" onClick={() => deleteTask(task.id)}>
                       Delete
                     </Button>
+                    
                   </Stack>
                 </Stack>
               </CardContent>
