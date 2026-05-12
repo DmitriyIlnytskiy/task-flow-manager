@@ -27,7 +27,7 @@ export default function App() {
           main: darkMode ? '#90caf9' : '#1976d2', // Lighter blue for dark mode
         },
         background: {
-          default: darkMode ? '#121212' : '#f0f4f8', // Soft gray for light mode, deep black for dark
+          default: darkMode ? '#121212' : '#f0f4f8', 
           paper: darkMode ? '#1e1e1e' : '#ffffff',
         }
       },

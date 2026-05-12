@@ -1,4 +1,3 @@
-// src/services/api.ts
 import type { Task } from '../store/taskStore';
 import type { TaskStatus } from '../types';
 
@@ -70,7 +69,6 @@ export const api: TaskApi = {
     
     if (taskIndex === -1) throw new Error("Task not found");
     
-    // Merge the old task data with whatever they edited
     const updatedTask = { ...tasks[taskIndex], ...updatedData };
     tasks[taskIndex] = updatedTask;
     
